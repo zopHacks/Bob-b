@@ -1,7 +1,6 @@
 from dotenv import load_dotenv
 import os
 from openai import AsyncOpenAI
-import asyncio
 
 load_dotenv()
 
@@ -10,10 +9,7 @@ history = []
 
 async def get_thread_id():
     thread = await client.beta.threads.create()
-    print(thread.id)
     return thread.id
-
-asyncio.run(get_thread_id())
 
 async def send_message(thread_id: str, prompt: str, instructions: str | None, assistant_instructions: str | None): 
     assistant = await client.beta.assistants.create(
@@ -42,10 +38,9 @@ async def send_message(thread_id: str, prompt: str, instructions: str | None, as
         )
 
         history.append({"role": "assistant", "content": message})
-        print(messages.data[0].content[0].text.value)
 
-        return messages.data[0].content[0].text
+        return messages.data[0].content[0].text.value
     else:
         print(run.status)
 
-asyncio.run(send_message("thread_V6FXRG0Ge7HAx2mlwGqKap3o", "thanks, so my functions that I just made in python work! it took me a really long time", "You are a helpful assistant", "help the user (your developer) test your api"))
+# Example: asyncio.run(send_message("thread_V6FXRG0Ge7HAx2mlwGqKap3o", "thanks, so my functions that I just made in python work! it took me a really long time", "You are a helpful assistant", "help the user (your developer) test your api"))

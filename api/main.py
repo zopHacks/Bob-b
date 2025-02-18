@@ -3,7 +3,7 @@ from fastapi import FastAPI
 # from utils import test1
 from utils.auth_user_jwt import verify_jwt, supabase
 from fastapi.middleware.cors import CORSMiddleware
-from depricated import original_connection
+from websocket_connection import connection
 
 app = FastAPI()
 
@@ -15,7 +15,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-app.include_router(original_connection.router)
+app.include_router(connection.router)
 
 # app.include_router(neets_tts.router)
 # app.include_router(test1.router)
