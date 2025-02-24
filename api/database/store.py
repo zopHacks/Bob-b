@@ -1,5 +1,5 @@
 from fastapi import HTTPException, APIRouter, Depends, Header
-from utils.auth_user_jwt import verify_jwt, supabase
+from depricated.auth_user_jwt import verify_jwt, supabase
 from dotenv import load_dotenv
 import os
 from openai import OpenAI

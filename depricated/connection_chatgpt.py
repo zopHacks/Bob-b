@@ -2,7 +2,7 @@ from fastapi import APIRouter, WebSocket, WebSocketDisconnect, HTTPException
 from utils.stt.stt_if_speech import is_speech
 from utils.tts.neets_tts import tts_neets
 from pydub.exceptions import CouldntDecodeError
-from llms.azure_gpt import OpenAI_Azure_Chat
+from llms.assistant_gpt_v4 import get_thread_id, send_message
 from utils.stt.stt_transcribe_groqv2 import transcribe_audio
 from utils.tts.neets_tts import tts_neets
 import json
@@ -23,9 +23,10 @@ async def websocket_endpoint(websocket: WebSocket, token: str):
 
     data = bytearray()
     non_speech_streak = 0
-    llm = OpenAI_Azure_Chat(history=[{"role": "system", "content": "You are a helpful voice assistant"}])
+    thread_id = await get_thread_id()
 
     while True:
+        # await websocket.send_text(json.dumps({"type": "restart"}))
         message = await websocket.receive()
         receiving_audio = True
         try:
@@ -37,7 +38,7 @@ async def websocket_endpoint(websocket: WebSocket, token: str):
                     try:
                         speech_to_check = data[-48000:]
                         speech_detected = await is_speech(speech_to_check, speech_threshold=0.4, duration=1.3)
-                        print(speech_detected)
+                        # print(speech_detected)
                         if not speech_detected:
                             non_speech_streak += 1
                         else:
@@ -55,16 +56,14 @@ async def websocket_endpoint(websocket: WebSocket, token: str):
                     non_speech_streak = 0
 
                     transcription = await transcribe_audio(data)
-                    print(transcription, "user")
-                    if transcription:
-                        await llm.append_message(transcription, "user")
-                        output = await llm.respond()
-                        print(output)
+                    print(transcription)
+                    output = await send_message(thread_id, transcription, 'you are a helpful assistant', 'you are a helpful assistant')
+                    print(output)
 
-                        generated_speech = await tts_neets(output)
+                    generated_speech = await tts_neets(output)
 
-                        await websocket.send_text(json.dumps({"type": "assistant_response", "text": output}))
-                        await websocket.send_bytes(generated_speech)
+                    await websocket.send_text(json.dumps({"type": "assistant_response", "text": output}))
+                    await websocket.send_bytes(generated_speech)
                             
                     data.clear()
 

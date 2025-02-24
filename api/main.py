@@ -1,7 +1,6 @@
 from fastapi import FastAPI
 # from utils.tts import neets_tts
 # from utils import test1
-from utils.auth_user_jwt import verify_jwt, supabase
 from fastapi.middleware.cors import CORSMiddleware
 from websocket_connection import connection
 
@@ -16,7 +15,3 @@ app.add_middleware(
 )
 
 app.include_router(connection.router)
-
-# app.include_router(neets_tts.router)
-# app.include_router(test1.router)
-# app.include_router(assistants_chatgpt.router)

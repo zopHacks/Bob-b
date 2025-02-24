@@ -20,4 +20,4 @@ async def tts_neets(text: str):
               "params": {"model": "vits", "format": "opus"}
         })
       audio_data = await response.read()
-      return StreamingResponse(BytesIO(audio_data), media_type="audio/ogg", chunk_size=4096)
+      return audio_data

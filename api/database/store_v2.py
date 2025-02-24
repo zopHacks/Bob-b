@@ -1,4 +1,4 @@
-from utils.auth_user_jwt import supabase, verify_jwt, verify_jwt2
+from depricated.auth_user_jwt import supabase, verify_jwt, verify_jwt2
 from fastapi import Depends
 from pydantic import BaseModel, Field
 from enum import Enum
@@ -61,7 +61,7 @@ new_goal: Goal = {
     "current_status": "decent",
     "next_steps": "go to the cinema",
     "struggles": "it's really hard to go to the movies",
-    "due_date": 123,
+    "due_date": 123
 #     "priority": Priority.HIGH,
 #     "difficulty": Difficulty.SUPER_HARD,
 }

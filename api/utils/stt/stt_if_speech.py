@@ -5,16 +5,17 @@ import io
 # Initialize VAD
 
 
-VAD_MODE = 3  # 0: Least aggressive, 3: Most aggressive noise filtering
+VAD_MODE = 2  # 0: Least aggressive, 3: Most aggressive noise filtering
 
 vad = webrtcvad.Vad()
 vad.set_mode(VAD_MODE)  # 0: Least aggressive, 3: Most aggressive noise filtering
 
-def load_audio(data, sample_rate: int=16000):
-    """Converts a .mp3 audio file into a 16kHz mono"""
-    audio = AudioSegment.from_file(io.BytesIO(data), format="webm")
-    audio = audio.set_frame_rate(sample_rate).set_channels(1).set_sample_width(2)  # Convert to 16-bit
-    return np.array(audio.get_array_of_samples(), dtype=np.int16)
+def load_pcm(data: bytes):
+    """
+    Convert raw 16-bit PCM bytes (little endian) into a NumPy array.
+    """
+    audio_array = np.frombuffer(data, dtype=np.int16)
+    return audio_array
 
 def frame_generator(audio, sample_rate: int, frame_duration: int):
     """Generates audio frames of the given duration."""
@@ -23,8 +24,8 @@ def frame_generator(audio, sample_rate: int, frame_duration: int):
         yield audio[i:i+frame_size].tobytes()
 
 
-async def is_speech(file, sample_rate: int = 16000, duration: int = 1.2, frame_duration: int = 30, speech_threshold: float = 0.75):
-    audio = load_audio(file)
+async def is_speech(data: bytes, sample_rate: int = 16000, duration: int = 1.2, frame_duration: int = 30, speech_threshold: float = 0.75):
+    audio = load_pcm(data)
     frames = list(frame_generator(audio, sample_rate, frame_duration))
 
     frames_in_duration = int((duration*1000)/frame_duration)
@@ -35,7 +36,7 @@ async def is_speech(file, sample_rate: int = 16000, duration: int = 1.2, frame_d
     picked_frames = frames[-(frames_in_duration):]
     detected_speech = 0
     for frame in picked_frames[:-1]:  # Excludes the last frame
-        if vad.is_speech(frame, 16000):
+        if vad.is_speech(frame, sample_rate):
             detected_speech += 1
 
     
