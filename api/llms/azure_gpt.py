@@ -1,13 +1,14 @@
 import os
 from dotenv import load_dotenv
 from openai import AsyncAzureOpenAI
+import json
 
 load_dotenv()
 
 client = AsyncAzureOpenAI(
   azure_endpoint = os.getenv("AZURE_OPENAI_ENDPOINT"), 
   api_key=os.getenv("AZURE_OPENAI_API_KEY"),  
-  api_version="2024-02-01"
+  api_version="2025-01-01-preview"
 )
 
 class OpenAI_Azure_Chat:
@@ -39,24 +40,39 @@ class OpenAI_Azure_Chat:
     )
     return completion
   
-# chatclient = OpenAI_Azure_Chat(history=[{"role": "system", "content": "You are a helpful assistant."}])
-# chatclient.append_message("can you please remember the word apple", "user")
-# print(chatclient.respond())
+async def azure_message(sys_prompt, user_prompt: str, model: str = "gpt-4o-mini"):
 
-# chatclient.append_message("what was the word I told you to remember?", "user")
-# print(chatclient.respond())
-  
+  completion = await client.beta.chat.completions.parse(
+      model="gpt-4o-mini",
+      messages=[
+          {"role": "system", "content": sys_prompt},
+          {"role": "user", "content": user_prompt}
+      ]
+  )
+  return completion.choices[0].message.content
 
 
-# print(response.choices[0].message.content)
+async def azure_message_tools(sys_prompt, user_prompt: str, tools, model: str = "gpt-4o-mini"):
 
+  completion = await client.chat.completions.create(
+      model="gpt-4o-mini",
+      tools=tools,
+      tool_choice="auto",
+      messages=[
+          {"role": "system", "content": sys_prompt},
+          {"role": "user", "content": user_prompt}
+      ]
+  )
+  return completion.choices[0].message.content
 
-# response = client.chat.completions.create(
-#     model="gpt-4o-mini",
-#     messages=[
-#         {"role": "system", "content": "You are a helpful assistant."},
-#         {"role": "user", "content": "Does Azure OpenAI support customer managed keys?"},
-#         {"role": "assistant", "content": "Yes, customer managed keys are supported by Azure OpenAI."},
-#         {"role": "user", "content": "Do other Azure AI services support this too?"}
-#     ]
-# )
+async def azure_message_json(sys_prompt, user_prompt: str, structure, model: str = "gpt-4o-mini"):
+
+  completion = await client.beta.chat.completions.parse(
+      model="gpt-4o-mini",
+      response_format=structure,
+      messages=[
+          {"role": "system", "content": sys_prompt},
+          {"role": "user", "content": user_prompt}
+      ]
+  )
+  return json.loads(completion.choices[0].message.content)

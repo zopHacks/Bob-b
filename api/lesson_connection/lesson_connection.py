@@ -7,9 +7,10 @@ from utils.stt.stt_transcribe_groqv2 import transcribe_audio
 from utils.tts.neets_tts import tts_neets
 import json
 from utils.verify_user_jwt import verify_user
+
 router = APIRouter(prefix='/ws')
 
-@router.websocket('/live-chat')
+@router.websocket('/lesson')
 async def websocket_endpoint(websocket: WebSocket, token: str):
     try:
         user = await verify_user(token)

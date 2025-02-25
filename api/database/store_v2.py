@@ -1,4 +1,4 @@
-from depricated.auth_user_jwt import supabase, verify_jwt, verify_jwt2
+from api.utils.auth_user_jwt import supabase, verify_jwt, verify_jwt2
 from fastapi import Depends
 from pydantic import BaseModel, Field
 from enum import Enum

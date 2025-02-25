@@ -1,4 +1,4 @@
-from depricated.auth_user_jwt import supabase
+from api.utils.auth_user_jwt import supabase
 from datetime import datetime
 from enum import Enum
 

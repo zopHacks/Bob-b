@@ -3,6 +3,7 @@ from fastapi import FastAPI
 # from utils import test1
 from fastapi.middleware.cors import CORSMiddleware
 from websocket_connection import connection
+from create_lesson import create_lesson_notes
 
 app = FastAPI()
 
@@ -15,3 +16,4 @@ app.add_middleware(
 )
 
 app.include_router(connection.router)
+app.include_router(create_lesson_notes.router)
