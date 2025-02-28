@@ -2,7 +2,6 @@ from fastapi import FastAPI
 # from utils.tts import neets_tts
 # from utils import test1
 from fastapi.middleware.cors import CORSMiddleware
-from websocket_connection import connection
 from lesson_connection import lesson_connection
 from create_lesson import create_lesson_notes
 
@@ -15,7 +14,5 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
-# app.include_router(connection.router)
 app.include_router(create_lesson_notes.router)
 app.include_router(lesson_connection.router)

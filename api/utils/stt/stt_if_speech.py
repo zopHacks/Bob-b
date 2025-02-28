@@ -1,14 +1,12 @@
 import webrtcvad
 from pydub import AudioSegment
 import numpy as np
-import io
-# Initialize VAD
 
 
 VAD_MODE = 2  # 0: Least aggressive, 3: Most aggressive noise filtering
 
 vad = webrtcvad.Vad()
-vad.set_mode(VAD_MODE)  # 0: Least aggressive, 3: Most aggressive noise filtering
+vad.set_mode(VAD_MODE)
 
 def load_pcm(data: bytes):
     """
