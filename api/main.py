@@ -1,9 +1,7 @@
 from fastapi import FastAPI
-# from utils.tts import neets_tts
-# from utils import test1
 from fastapi.middleware.cors import CORSMiddleware
-from lesson_connection import lesson_connection
-from create_lesson import create_lesson_notes
+from api.lesson_connection import lesson_connection
+from api.create_lesson import create_lesson_notes
 
 app = FastAPI()
 

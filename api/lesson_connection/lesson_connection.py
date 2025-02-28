@@ -1,14 +1,14 @@
 # This script is running on fastapi and websockets in order to connect to the client easily
 
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect, HTTPException
-from llms.azure_gpt import OpenAI_Azure_Chat_JSON
-from utils.stt.stt_if_speech import is_speech
+from api.llms.azure_gpt import OpenAI_Azure_Chat_JSON
+from api.utils.stt.stt_if_speech import is_speech
 from pydub.exceptions import CouldntDecodeError
-from utils.stt.stt_transcribe_groqv2 import transcribe_audio
+from api.utils.stt.stt_transcribe_groqv2 import transcribe_audio
 from api.utils.tts.elevenlabs_tts import tts_elevenlabs
 import json
-from utils.verify_user_jwt import verify_user, supabase
-from create_lesson.create_lesson_notes import info
+from api.utils.verify_user_jwt import verify_user, supabase
+from api.create_lesson.create_lesson_notes import info
 
 router = APIRouter(prefix='/ws')
 

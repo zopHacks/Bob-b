@@ -1,6 +1,5 @@
 import os
-from fastapi import Depends, HTTPException, Header
-from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+from fastapi import HTTPException
 from supabase import create_client, Client
 from dotenv import load_dotenv
 
