@@ -2,6 +2,7 @@ import os
 from dotenv import load_dotenv
 from openai import AsyncAzureOpenAI
 import json
+from pydantic import BaseModel
 
 load_dotenv()
 
@@ -76,3 +77,27 @@ async def azure_message_json(sys_prompt, user_prompt: str, structure, model: str
       ]
   )
   return json.loads(completion.choices[0].message.content)
+
+class Exercise(BaseModel):
+  read: str
+  display_code: str
+  is_ready_for_next: str
+
+class OpenAI_Azure_Chat_JSON:
+  def __init__(self, model: str = "gpt-4o-mini", history: list[dict] | None = None, tools:list = None) -> None:
+    self.history = history
+    self.model = model
+
+  async def append_message(self, message: str, role: str) -> list[dict]:
+    self.history.append({"role": role, "content": message})
+    print(self.history)
+
+  async def respond(self) -> str:
+    completion = await client.beta.chat.completions.parse(
+      model=self.model,
+      messages=self.history,
+      response_format=Exercise
+    )
+    return json.loads(completion.choices[0].message.content)
+  async def get_history(self):
+    return self.history
