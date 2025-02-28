@@ -65,4 +65,6 @@ async def tts_elevenlabs(text: str) -> bytes:
                 except Exception:
                     # Ignore non JSON messages
                     pass
+
+    print(bytes(generated_audio))
     return bytes(generated_audio)

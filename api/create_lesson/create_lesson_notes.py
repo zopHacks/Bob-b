@@ -1,8 +1,8 @@
 # This script is for using prompt, and saving their messages on supabase, for the LLM to be able to acess it easily later.
 from fastapi import APIRouter, Depends
-from api.utils.auth_user_jwt import verify_jwt, supabase
+from utils.auth_user_jwt import verify_jwt, supabase
 from dotenv import load_dotenv
-from api.llms.azure_gpt import azure_message, azure_message_json
+from llms.azure_gpt import azure_message, azure_message_json
 from pydantic import BaseModel
 
 load_dotenv()

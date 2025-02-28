@@ -1,14 +1,14 @@
 # This script is running on fastapi and websockets in order to connect to the client easily
 
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect, HTTPException
-from api.llms.azure_gpt import OpenAI_Azure_Chat_JSON
-from api.utils.stt.stt_if_speech import is_speech
+from llms.azure_gpt import OpenAI_Azure_Chat_JSON
+from utils.stt.stt_if_speech import is_speech
 from pydub.exceptions import CouldntDecodeError
-from api.utils.stt.stt_transcribe_groqv2 import transcribe_audio
-from api.utils.tts.elevenlabs_tts import tts_elevenlabs
+from utils.stt.stt_transcribe_groqv2 import transcribe_audio
+from utils.tts.elevenlabs_tts import tts_elevenlabs
 import json
-from api.utils.verify_user_jwt import verify_user, supabase
-from api.create_lesson.create_lesson_notes import info
+from utils.verify_user_jwt import verify_user, supabase
+from create_lesson.create_lesson_notes import info
 
 router = APIRouter(prefix='/ws')
 
@@ -50,6 +50,8 @@ async def websocket_endpoint(websocket: WebSocket, token: str, url: str):
     await websocket.send_text(json.dumps({"type": "code", "text": init_code}))
 
     await websocket.send_text(json.dumps({"type": "assistant_response", "text": intro}))
+    
+    print(intro)
 
     generated_speech = await tts_elevenlabs(intro)
     await websocket.send_bytes(generated_speech)
@@ -124,8 +126,8 @@ async def get_user_response(websocket: WebSocket):
                         speech_detected = await is_speech(speech_to_check, speech_threshold=0.7, duration=1.3)
                         if not speech_detected:
                             non_speech_streak += 1
-                            if spoke > 0:
-                                spoke = spoke-1
+                            if spoke > 10:
+                                spoke = spoke-10
                         else:
                             spoke += 1
                             print("speech detected")
@@ -137,7 +139,7 @@ async def get_user_response(websocket: WebSocket):
                     except Exception as e:
                         print("Unexpected error in is_speech:", e)
 
-                if non_speech_streak > 4 and spoke > 400:
+                if non_speech_streak > 4 and spoke > 500:
                     print(spoke)
                     non_speech_streak = 0
                     await websocket.send_text(json.dumps({"type": "processing"}))
