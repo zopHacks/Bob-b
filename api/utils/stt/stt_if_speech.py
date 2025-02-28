@@ -31,7 +31,7 @@ async def is_speech(data: bytes, sample_rate: int = 16000, duration: int = 1.2, 
     frames_in_duration = int((duration*1000)/frame_duration)
 
     if len(frames) < frames_in_duration:
-        return True
+        return False #used to be defaulted to true
     
     picked_frames = frames[-(frames_in_duration):]
     detected_speech = 0

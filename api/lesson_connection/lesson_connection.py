@@ -3,7 +3,7 @@ from llms.azure_gpt import OpenAI_Azure_Chat_JSON
 from utils.stt.stt_if_speech import is_speech
 from pydub.exceptions import CouldntDecodeError
 from utils.stt.stt_transcribe_groqv2 import transcribe_audio
-from utils.tts.neets_tts import tts_neets
+from utils.tts.neets_tts import tts_elevenlabs
 import json
 from utils.verify_user_jwt import verify_user, supabase
 from create_lesson.create_lesson_notes import generate_dou_understand_question, info
@@ -43,7 +43,7 @@ async def websocket_endpoint(websocket: WebSocket, token: str, url: str):
 
     await websocket.send_text(json.dumps({"type": "assistant_response", "text": intro}))
 
-    generated_speech = await tts_neets(intro)
+    generated_speech = await tts_elevenlabs(intro)
     await websocket.send_bytes(generated_speech)
 
     await wait_for_stop(websocket)
@@ -52,29 +52,13 @@ async def websocket_endpoint(websocket: WebSocket, token: str, url: str):
     await websocket.send_text(json.dumps({"type": "code", "text": concept_explanation_code}))
     print("sends code 2")
 
-    generated_speech = await tts_neets(concept_explanation)
+    generated_speech = await tts_elevenlabs(concept_explanation)
     await websocket.send_bytes(generated_speech)
 
     script = await wait_stop_code(websocket)
     code = script["code"]
     output = script["output"]
 
-    # understanding_question = await generate_dou_understand_question(topic, planning_notes, intro, concept_explanation, code, output)
-    # question = understanding_question["read"]
-    # question_display_code = understanding_question["display_code"]
-
-    # print(question, question_display_code)
-
-
-    # await websocket.send_text(json.dumps({"type": "assistant_response", "text": question}))
-    # await websocket.send_text(json.dumps({"type": "code", "text": question_display_code}))
-    
-    # print(understanding_question)
-
-    # new_generated_speech = await tts_neets(question)
-    # await websocket.send_bytes(new_generated_speech)
-    # await wait_for_stop(websocket)
-    
     await exercise_conversation(websocket=websocket, new_topic=topic, planning_notes=planning_notes, lesson_intro=intro, concept_explanation=concept_explanation, old_code=code, old_output=output)
     await websocket.send_text(json.dumps({"type": "return_button"}))
 
@@ -125,38 +109,38 @@ async def get_user_response(websocket: WebSocket):
                         return text
 
             if "bytes" in message:
-                print("bytes detected")
                 new_data = message["bytes"]
                 data.extend(new_data)
 
                 if len(data) > 100000:
                     try:
                         speech_to_check = data[-48000:]
-                        speech_detected = await is_speech(speech_to_check, speech_threshold=0.4, duration=1.3)
-                        # print(speech_detected)
+                        speech_detected = await is_speech(speech_to_check, speech_threshold=0.7, duration=1.3)
                         if not speech_detected:
                             non_speech_streak += 1
                             if spoke > 0:
                                 spoke = spoke-1
                         else:
                             spoke += 1
+                            print("speech detected")
                             non_speech_streak = 0
                     except CouldntDecodeError as e:
-                        print("Decoding error (likely due to incomplete data):", e, "ee")
+                        print("Decoding error (likely due to incomplete data):", e)
                         break
                     
                     except Exception as e:
                         print("Unexpected error in is_speech:", e)
 
-                if non_speech_streak > 4 and spoke > 3:
+                if non_speech_streak > 4 and spoke > 450:
+                    print(spoke)
                     non_speech_streak = 0
                     await websocket.send_text(json.dumps({"type": "processing"}))
 
 
                     transcription = await transcribe_audio(data)
                     return {"type": "transcription", "transcription": transcription}
-                else:
-                    print(non_speech_streak > 4, spoke > 3, spoke)
+                # else:
+                    # print(spoke, non_speech_streak)
 
         except WebSocketDisconnect as e:
             print("WebSocket disconnected:", e)
@@ -169,7 +153,7 @@ async def exercise_conversation(websocket: WebSocket, new_topic: str, planning_n
 Output your response as JSON with three keys:
 - "read": Your spoken question in plain text.
 - "display_code": Any on-screen notes in plain text or Python format, if applicable. For any exercises provided, do not include complete solutions; instead, use Python-style comments (starting with '#') to offer instructions and hints, and remind the learner to press the run button in the interpreter to see the output of the code.
-- "is_ready_for_next": A boolean value indicating whether you believe the learner is ready to move on to the next topic (typically, after 2–3 exercises for beginner topics).
+- "is_ready_for_next": A boolean value indicating whether you believe the learner is ready to move on to the next topic (typically, after 2–3 exercises for beginner topics). When setting "is_ready_for_next" to True, include a congratulatory message for the learner on achieving the lesson, and note that you will not be able to respond to further input after this decision.
 
 After receiving the learner's response, continue the conversation by deciding whether the learner needs further explanation or is ready for one or more practical exercises. After approximately two exercises, ask if they are ready to move on to the next lesson.
 
@@ -177,6 +161,18 @@ Proceed based on the learner's response."""
 
 
     llm = OpenAI_Azure_Chat_JSON(history=[{"role": "system", "content": sys_prompt}])
+    response = await llm.respond()
+
+    read = response["read"]
+    display_code = response["display_code"]
+    await llm.append_message(f"read: {read} \n\n\n display_code: {display_code}", "assistant")
+
+    new_generated_speech = await tts_elevenlabs(response["read"])
+    await websocket.send_bytes(new_generated_speech)
+
+    await websocket.send_text(json.dumps({"type": "assistant_response", "text": response["read"]}))
+    await websocket.send_text(json.dumps({"type": "code", "text": response["display_code"]}))
+
     while True:
         answer = await get_user_response(websocket)
         print(answer)
@@ -195,12 +191,12 @@ Proceed based on the learner's response."""
         read = response["read"]
         display_code = response["display_code"]
 
-        new_generated_speech = await tts_neets(response["read"])
+        new_generated_speech = await tts_elevenlabs(response["read"])
         await websocket.send_bytes(new_generated_speech)
 
         await websocket.send_text(json.dumps({"type": "assistant_response", "text": response["read"]}))
         await websocket.send_text(json.dumps({"type": "code", "text": response["display_code"]}))
-
+        print(response["is_ready_for_next"])
         if response["is_ready_for_next"]:
             break
         
