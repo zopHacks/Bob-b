@@ -1,14 +1,23 @@
+# This script is running on fastapi and websockets in order to connect to the client easily
+
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect, HTTPException
 from llms.azure_gpt import OpenAI_Azure_Chat_JSON
 from utils.stt.stt_if_speech import is_speech
 from pydub.exceptions import CouldntDecodeError
 from utils.stt.stt_transcribe_groqv2 import transcribe_audio
-from utils.tts.neets_tts import tts_elevenlabs
+from api.utils.tts.elevenlabs_tts import tts_elevenlabs
 import json
 from utils.verify_user_jwt import verify_user, supabase
-from create_lesson.create_lesson_notes import generate_dou_understand_question, info
+from create_lesson.create_lesson_notes import info
 
 router = APIRouter(prefix='/ws')
+
+# Code Explanation:
+# The api gets a topic, planning notes, and concept explanation which were generated earlier at "create_lesson_notes" and were stored on supabase.
+# Then, it convertes the messages into Text To Speech, and streams them to the user.
+# Afterwards, the API waits for the user to try out their code.
+# After that, the API goes through a phaze of a conversational state, each time, listening and waiting for code, and sending a response.
+# Until the LLM decides that the user is ready for the next lesson, and sending a message {"type": "return_button"}, in order for the client to show this.
 
 @router.websocket('/lesson')
 async def websocket_endpoint(websocket: WebSocket, token: str, url: str):
@@ -28,6 +37,7 @@ async def websocket_endpoint(websocket: WebSocket, token: str, url: str):
         .eq("url", url)
         .execute()
     )
+
     topic = response.data[0]["lesson_topic"]
     planning_notes = response.data[0]["planning_notes"]
 
@@ -36,10 +46,8 @@ async def websocket_endpoint(websocket: WebSocket, token: str, url: str):
     concept_explanation = response.data[0]["concept_explanation"]
     concept_explanation_code = response.data[0]["concept_explanation_code"]
 
-    print(intro)
     await websocket.send_text(json.dumps({"type": "title", "text": topic}))
     await websocket.send_text(json.dumps({"type": "code", "text": init_code}))
-    print("sends code 1")
 
     await websocket.send_text(json.dumps({"type": "assistant_response", "text": intro}))
 
@@ -50,7 +58,6 @@ async def websocket_endpoint(websocket: WebSocket, token: str, url: str):
 
     await websocket.send_text(json.dumps({"type": "assistant_response", "text": concept_explanation}))
     await websocket.send_text(json.dumps({"type": "code", "text": concept_explanation_code}))
-    print("sends code 2")
 
     generated_speech = await tts_elevenlabs(concept_explanation)
     await websocket.send_bytes(generated_speech)
@@ -63,16 +70,15 @@ async def websocket_endpoint(websocket: WebSocket, token: str, url: str):
     await websocket.send_text(json.dumps({"type": "return_button"}))
 
 
-async def wait_for_stop(websocket: WebSocket):
+async def wait_for_stop(websocket: WebSocket): # Waits for receiving a "stopped_playing" message from the client
     while True:
         message = await websocket.receive()
         if "text" in message:
             text = json.loads(message["text"])
             if text["type"] == "stopped_playing":
                 break
-    print("stop received")
 
-async def wait_stop_code(websocket: WebSocket):
+async def wait_stop_code(websocket: WebSocket): # Waits for both receiving a "stopped_playing", and a "code_response" messages from the client
     is_stopped = False
     got_code = False
     code_response = None
@@ -131,7 +137,7 @@ async def get_user_response(websocket: WebSocket):
                     except Exception as e:
                         print("Unexpected error in is_speech:", e)
 
-                if non_speech_streak > 4 and spoke > 450:
+                if non_speech_streak > 4 and spoke > 400:
                     print(spoke)
                     non_speech_streak = 0
                     await websocket.send_text(json.dumps({"type": "processing"}))
@@ -139,8 +145,6 @@ async def get_user_response(websocket: WebSocket):
 
                     transcription = await transcribe_audio(data)
                     return {"type": "transcription", "transcription": transcription}
-                # else:
-                    # print(spoke, non_speech_streak)
 
         except WebSocketDisconnect as e:
             print("WebSocket disconnected:", e)
@@ -196,6 +200,7 @@ Proceed based on the learner's response."""
 
         await websocket.send_text(json.dumps({"type": "assistant_response", "text": response["read"]}))
         await websocket.send_text(json.dumps({"type": "code", "text": response["display_code"]}))
+
         print(response["is_ready_for_next"])
         if response["is_ready_for_next"]:
             break

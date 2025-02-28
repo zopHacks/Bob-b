@@ -29,11 +29,11 @@ async def is_speech(data: bytes, sample_rate: int = 16000, duration: int = 1.2, 
     frames_in_duration = int((duration*1000)/frame_duration)
 
     if len(frames) < frames_in_duration:
-        return False #used to be defaulted to true
+        return False
     
     picked_frames = frames[-(frames_in_duration):]
     detected_speech = 0
-    for frame in picked_frames[:-1]:  # Excludes the last frame
+    for frame in picked_frames[:-1]:  # Excludes the last frame, because it might not be big enough, this cannot be smaller than the 
         if vad.is_speech(frame, sample_rate):
             detected_speech += 1
 

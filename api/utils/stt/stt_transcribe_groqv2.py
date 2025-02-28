@@ -7,7 +7,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 client = Groq(api_key=os.getenv("GROQ_API_KEY"))
-
+# This script uses Groq with whisper large v3 turbo in order to transcribe audio data
 async def transcribe_audio(data: bytes) -> str:
     temp_audio_path = None
     try:

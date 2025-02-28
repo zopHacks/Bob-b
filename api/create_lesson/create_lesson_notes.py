@@ -1,9 +1,9 @@
-from fastapi import HTTPException, APIRouter, Depends, WebSocket
+# This script is for using prompt, and saving their messages on supabase, for the LLM to be able to acess it easily later.
+from fastapi import APIRouter, Depends
 from utils.auth_user_jwt import verify_jwt, supabase
 from dotenv import load_dotenv
-from llms.azure_gpt import azure_message, azure_message_json, OpenAI_Azure_Chat_JSON
+from llms.azure_gpt import azure_message, azure_message_json
 from pydantic import BaseModel
-import json
 
 load_dotenv()
 router = APIRouter(prefix='/lesson')
@@ -86,17 +86,7 @@ Output your response as JSON with two keys:
 
     return await azure_message_json(sys_prompt, user_prompt, structure=Teach, model="gpt-4o-mini")
 
-async def generate_dou_understand_question(new_topic: str, planning_notes: str, lesson_intro: str, concept_explanation: str, code: str, output: str):
-    sys_prompt = f"""You are Ezra, an engaging and efficient voice assistant and coding tutor. {info} You have just presented today's lesson using your internal planning notes {planning_notes}, covering the topic {new_topic} with a lesson introduction {lesson_intro}, a detailed concept explanation {concept_explanation}, and example code and its output {code} and {output}. Now, ask the learner a clear and friendly question to check if they understand the material so far. Your question should ask whether the learner is ready to proceed with a practical exercise or needs further explanation on any part of the lesson. Do not include any formatting symbols, meta commentary, or greetings in your spoken text.
-
-    Output your response as JSON with three keys:
-    "read": Your spoken question in plain text.
-    "display_code": Any on-screen notes in plain text, if applicable."""
-
-    user_prompt = f"""Based on what we've covered about {new_topic}, do you feel comfortable with the lesson so far? Would you like to try an exercise to apply what you've learned, or do you need more explanation on any part of the topic?"""
-    return await azure_message_json(sys_prompt, user_prompt, structure=Teach, model="gpt-4o-mini")
-
-
+# Verifing jwt token, and saving the responses on Supabase.
 @router.post('/create-notes')
 async def create_notes(topic: str, user=Depends(verify_jwt)): 
     new_topic = await generate_topic(topic)
