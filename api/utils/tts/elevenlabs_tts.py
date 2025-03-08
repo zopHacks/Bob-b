@@ -12,7 +12,6 @@ load_dotenv()
 load_dotenv()
 ELEVENLABS_API_KEY = os.getenv("ELELVENLABS_API_KEY")
 
-
 VOICE_ID = 'UgBBYS2sOqTuMpoF3BR0'
 MODEL_ID = 'eleven_flash_v2_5'
 
@@ -66,5 +65,4 @@ async def tts_elevenlabs(text: str) -> bytes:
                     # Ignore non JSON messages
                     pass
 
-    print(bytes(generated_audio))
     return bytes(generated_audio)

@@ -5,10 +5,11 @@ from llms.azure_gpt import OpenAI_Azure_Chat_JSON
 from utils.stt.stt_if_speech import is_speech
 from pydub.exceptions import CouldntDecodeError
 from utils.stt.stt_transcribe_groqv2 import transcribe_audio
-from utils.tts.elevenlabs_tts import tts_elevenlabs
 import json
+import asyncio
 from utils.verify_user_jwt import verify_user, supabase
 from create_lesson.create_lesson_notes import info
+from utils.tts.deepgram_tts import tts_deepgram
 
 router = APIRouter(prefix='/ws')
 
@@ -43,6 +44,7 @@ async def websocket_endpoint(websocket: WebSocket, token: str, url: str):
 
     intro = response.data[0]["lesson_intro"]
     init_code = response.data[0]["init_code"]
+    
     concept_explanation = response.data[0]["concept_explanation"]
     concept_explanation_code = response.data[0]["concept_explanation_code"]
 
@@ -53,24 +55,31 @@ async def websocket_endpoint(websocket: WebSocket, token: str, url: str):
     
     print(intro)
 
-    generated_speech = await tts_elevenlabs(intro)
-    await websocket.send_bytes(generated_speech)
-
+    await generate_audio(websocket, intro)
     await wait_for_stop(websocket)
 
     await websocket.send_text(json.dumps({"type": "assistant_response", "text": concept_explanation}))
     await websocket.send_text(json.dumps({"type": "code", "text": concept_explanation_code}))
 
-    generated_speech = await tts_elevenlabs(concept_explanation)
-    await websocket.send_bytes(generated_speech)
+    await generate_audio(websocket, concept_explanation)
 
     script = await wait_stop_code(websocket)
     code = script["code"]
     output = script["output"]
 
     await exercise_conversation(websocket=websocket, new_topic=topic, planning_notes=planning_notes, lesson_intro=intro, concept_explanation=concept_explanation, old_code=code, old_output=output)
+    
+    # When bob-b will think the user has finished the lesson, it'll send a message for the client to display a return button
     await websocket.send_text(json.dumps({"type": "return_button"}))
 
+async def generate_audio(websocket: WebSocket, message):
+    try:
+        task = asyncio.create_task(tts_deepgram(message))
+        generated_speech = await task
+        await websocket.send_bytes(generated_speech)
+
+    except Exception as e:
+        print(e)
 
 async def wait_for_stop(websocket: WebSocket): # Waits for receiving a "stopped_playing" message from the client
     while True:
@@ -173,8 +182,7 @@ Proceed based on the learner's response."""
     display_code = response["display_code"]
     await llm.append_message(f"read: {read} \n\n\n display_code: {display_code}", "assistant")
 
-    new_generated_speech = await tts_elevenlabs(response["read"])
-    await websocket.send_bytes(new_generated_speech)
+    await generate_audio(websocket, response["read"])
 
     await websocket.send_text(json.dumps({"type": "assistant_response", "text": response["read"]}))
     await websocket.send_text(json.dumps({"type": "code", "text": response["display_code"]}))
@@ -197,8 +205,7 @@ Proceed based on the learner's response."""
         read = response["read"]
         display_code = response["display_code"]
 
-        new_generated_speech = await tts_elevenlabs(response["read"])
-        await websocket.send_bytes(new_generated_speech)
+        await generate_audio(websocket, response["read"])
 
         await websocket.send_text(json.dumps({"type": "assistant_response", "text": response["read"]}))
         await websocket.send_text(json.dumps({"type": "code", "text": response["display_code"]}))
